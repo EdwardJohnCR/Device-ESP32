@@ -15,12 +15,19 @@ const char* mqtt_server = "192.168.100.9";
 #define led 2
 
 //WiFi
-const char *wifi_ssid = "Terrolin";
-const char *wifi_password = "202128tiliga";
+const char* wifi_ssid = "Terrolin";
+const char* wifi_password = "202128tiliga";
 
-//Functions definitions
+//Funciones
 bool get_mqtt_credentials();
+void check_mqtt_connection();
+bool reconnect();
 void clear();
+
+//Variables Gloales 
+WiFiClient espclient;
+PubSubClient client(espclient);
+long lastReconnectAttemp = 0;
 
 DynamicJsonDocument mqtt_data_doc(2048);
 
@@ -31,7 +38,7 @@ void setup() {
   pinMode(led, OUTPUT);
   clear();
 
-  Serial.print(underlinePurple + "\n\n\nWiFi Connection in Progress" + fontReset + Purple);
+  Serial.print(underlinePurple + "\n\n\n  WiFi Connection in Progress" + fontReset + Purple);
 
   WiFi.begin(wifi_ssid,wifi_password);
 
@@ -61,17 +68,63 @@ void setup() {
   Serial.print(WiFi.localIP());
   Serial.println(fontReset);
 
-  get_mqtt_credentials();
-
-  
-
   
 }
 
 void loop() {
-  
+
+    check_mqtt_connection();
 }
 
+bool reconnect(){
+
+  if (!get_mqtt_credentials()){
+    Serial.println(boldRed + "\n\n      Error getting mqtt credentials :( \n\n RESTARTING IN 10 SECONDS");
+    Serial.println(fontReset);
+    delay(10000);
+    ESP.restart();
+  }
+
+  //Setting up Mqtt Server
+  client.setServer(mqtt_server, 1883);
+
+  Serial.print(underlinePurple + "\n\n\nTrying MQTT Connection" + fontReset + Purple + "  ⤵");
+
+  String str_client_id = "device_" + dId + "_" + random(1,9999);
+  const char* username = mqtt_data_doc["username"];
+  const char* password = mqtt_data_doc["password"];
+  String str_topic = mqtt_data_doc["topic"];
+
+  if(client.connect(str_client_id.c_str(), username, password)){
+    Serial.print(boldGreen + "\n\n         Mqtt Client Connected :) " + fontReset);
+    delay(2000);
+
+    client.subscribe((str_topic + "+/actdata").c_str());
+  }else{
+    Serial.print(boldRed + "\n\n         Mqtt Client Connection Failed :( " + fontReset);
+  }
+
+
+}
+
+void check_mqtt_connection(){
+
+  if(!client.connected()){
+
+    long now = millis();
+
+    if (now - lastReconnectAttemp > 5000){
+      lastReconnectAttemp = millis();
+       if(reconnect()){
+         lastReconnectAttemp = 0;
+       }
+    }
+
+  }else{
+    client.loop();
+  }
+
+}
 
 bool get_mqtt_credentials(){
 
@@ -119,7 +172,7 @@ bool get_mqtt_credentials(){
 
   }
 
-  return false;
+  return true;
 
 }
 
