@@ -9,14 +9,14 @@
 String dId = "010203";
 String webhook_pass = "Hizz7r2bZ1";
 String webhook_endpoint = "http://192.168.100.9:3001/api/getdevicecredentials";
-const char* mqtt_server = "192.168.100.9";
+const char *mqtt_server = "192.168.100.9";
 
 //PINS 
 #define led 2
 
 //WiFi
-const char* wifi_ssid = "Terrolin";
-const char* wifi_password = "202128tiliga";
+const char *wifi_ssid = "Terrolin";
+const char *wifi_password = "202128tiliga";
 
 //Funciones
 bool get_mqtt_credentials();
@@ -40,7 +40,7 @@ void setup() {
 
   Serial.print(underlinePurple + "\n\n\n  WiFi Connection in Progress" + fontReset + Purple);
 
-  WiFi.begin(wifi_ssid,wifi_password);
+  WiFi.begin(wifi_ssid, wifi_password);
 
   int counter = 0;
 
@@ -70,9 +70,8 @@ void setup() {
 
   
 }
-
+443
 void loop() {
-
     check_mqtt_connection();
 }
 
@@ -100,7 +99,9 @@ bool reconnect(){
     delay(2000);
 
     client.subscribe((str_topic + "+/actdata").c_str());
-  }else{
+  }
+  else
+  {
     Serial.print(boldRed + "\n\n         Mqtt Client Connection Failed :( " + fontReset);
   }
 
@@ -109,18 +110,30 @@ bool reconnect(){
 
 void check_mqtt_connection(){
 
-  if(!client.connected()){
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(Red + "\n\n         Ups WiFi Connection Failed :( ");
+    Serial.println(" -> Restarting..." + fontReset);
+    delay(15000);
+    ESP.restart();
+  }
+
+  if (!client.connected())
+  {
 
     long now = millis();
 
-    if (now - lastReconnectAttemp > 5000){
+       if (now - lastReconnectAttemp > 5000)
+    {
       lastReconnectAttemp = millis();
-       if(reconnect()){
-         lastReconnectAttemp = 0;
-       }
+      if (reconnect())
+      {
+        lastReconnectAttemp = 0;
+      }
     }
-
-  }else{
+  }
+  else
+  {
     client.loop();
   }
 
