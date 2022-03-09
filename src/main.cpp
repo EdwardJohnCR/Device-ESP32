@@ -6,8 +6,8 @@
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 
-String dId = "010203";
-String webhook_pass = "Hizz7r2bZ1";
+String dId = "32000122";
+String webhook_pass = "xy0uS0BVuw";
 String webhook_endpoint = "http://192.168.100.9:3001/api/getdevicecredentials";
 const char *mqtt_server = "192.168.100.9";
 
@@ -77,9 +77,7 @@ void setup() {
 void loop() {
     check_mqtt_connection();
     send_data_to_broker();
-
-    process_sensors();
-    process_actuators();  
+  
 }
 
 int prev_temp = 0;
@@ -125,8 +123,8 @@ void process_sensors(){
 
   prev_hum = hum;
 
-
-
+  //get led status
+  mqtt_data_doc["variables"][4]["last"]["value"] = (HIGH == digitalRead(led));
 }
 
 void process_actuators(){
@@ -166,6 +164,8 @@ void send_data_to_broker(){
 
       client.publish(topic.c_str(), toSend.c_str());
 
+      Serial.println(topic);
+      Serial.println(toSend);
 
     }
 
@@ -236,6 +236,8 @@ void check_mqtt_connection(){
   else
   {
     client.loop();
+    process_sensors();
+    process_actuators();
   }
 
 }
