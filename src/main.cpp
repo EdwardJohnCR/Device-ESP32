@@ -34,6 +34,7 @@ WiFiClient espclient;
 PubSubClient client(espclient);
 long lastReconnectAttemp = 0;
 IoTicosSplitter splitter;
+long varsLastSend[20];
 
 DynamicJsonDocument mqtt_data_doc(2048);
 
@@ -81,7 +82,7 @@ void setup() {
 
 void loop() {
     check_mqtt_connection(); 
-    send_data_to_broker();
+ 
 }
 
 int prev_temp = 0;
@@ -109,8 +110,6 @@ void process_sensors(){
   prev_temp = temp;
 
 
-
-
   //get humidity simulation
   int hum = random (1, 50);
   mqtt_data_doc["variables"][1]["last"]["value"] = hum;
@@ -133,12 +132,63 @@ void process_sensors(){
 }
 
 void process_actuators(){
-  if (mqtt_data_doc["variables"][2]["last"]["value"] == true){
+  if (mqtt_data_doc["variables"][2]["last"]["value"] == "true"){
     digitalWrite(led, HIGH);
-  }else if(mqtt_data_doc["variables"][3]["last"]["value"] == false){
+    mqtt_data_doc["variables"][2]["last"]["value"] = "";
+    varsLastSend[4] = 0;
+  }
+  else if(mqtt_data_doc["variables"][3]["last"]["value"] == "false"){
     digitalWrite(led, LOW);
+    mqtt_data_doc["variables"][3]["last"]["value"] = "";
+    varsLastSend[4] = 0;
   }
 }
+
+String last_received_msg = "";
+String last_received_topic = "";
+
+/*
+username: 'YMhQjLSTDK',
+  password: 'QeNP4Yh9hl',
+  topic: '5ffcc00149fdcf311a4de607/121212/',
+  variables: [
+    {
+      variable: 'UN09CeSTtk',
+      variableFullName: 'Temperature',
+      variableType: 'input',
+      variableSendFreq: 10,
+      last: "{}"
+    },
+    {
+      variable: 'LqSbjUs1el',
+      variableFullName: 'Humidity',
+      variableType: 'input',
+      variableSendFreq: 3
+    },
+    {
+      variable: 'EB2hR2QpII',
+      variableFullName: 'Light',
+      variableType: 'output',
+      variableSendFreq: undefined
+    },
+    {
+      variable: '3CTkjlSaxa',
+      variableFullName: 'Light',
+      variableType: 'output',
+      variableSendFreq: undefined
+      last: 
+    },
+    {
+      variable: 'DHJcvXTK0D',
+      variableFullName: 'Light Status',
+      variableType: 'input',
+      variableSendFreq: '10'
+    }
+  ]
+*/
+
+
+// sdfgsdfgsdfg/121212/3CTkjlSaxa/actdata
 
 //TEMPLATE ⤵
 
@@ -155,18 +205,15 @@ void process_incoming_msg(String topic , String incoming){
 
 
       DynamicJsonDocument doc(256);
-      deserializeJson(doc,incoming);
-      mqtt_data_doc["variables"][i]["last"]["value"] = doc["value"];
-
-      serializeJsonPretty(mqtt_data_doc, Serial);
-
-      process_actuators();
+      deserializeJson(doc, incoming);
+      mqtt_data_doc["variables"][i]["last"] = doc;
+     
 
     }
 
   }
 
-
+  process_actuators();
 
 }
 
@@ -180,12 +227,9 @@ void callback(char *topic, byte *payload, unsigned int length){
 
   incoming.trim();
 
-  //process_incoming_msg(String(topic), incoming);
-  Serial.println(incoming);
-  Serial.println(String(topic));
-}
+  process_incoming_msg(String(topic), incoming);
 
-long varsLastSend[20];
+}
 
 void send_data_to_broker(){
 
@@ -222,7 +266,6 @@ void send_data_to_broker(){
   }
 
 }
-
 
 bool reconnect(){
 
@@ -285,8 +328,8 @@ void check_mqtt_connection(){
   {
     client.loop();
     process_sensors();
-    process_actuators();
-    
+    send_data_to_broker();
+  
   }
 
 }
