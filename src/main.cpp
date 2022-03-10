@@ -25,12 +25,15 @@ bool reconnect();
 void process_sensors();
 void process_actuators();
 void send_data_to_broker();
+void callback(char *topic, byte *payload, unsigned int length);
+void process_incoming_msg(String topic , String incoming);
 void clear();
 
 //Variables Gloales 
 WiFiClient espclient;
 PubSubClient client(espclient);
 long lastReconnectAttemp = 0;
+IoTicosSplitter splitter;
 
 DynamicJsonDocument mqtt_data_doc(2048);
 
@@ -71,13 +74,14 @@ void setup() {
   Serial.print(WiFi.localIP());
   Serial.println(fontReset);
 
+  client.setCallback(callback);
+
   
 }
 
 void loop() {
-    check_mqtt_connection();
+    check_mqtt_connection(); 
     send_data_to_broker();
-  
 }
 
 int prev_temp = 0;
@@ -111,6 +115,7 @@ void process_sensors(){
   int hum = random (1, 50);
   mqtt_data_doc["variables"][1]["last"]["value"] = hum;
 
+
     //save hum?
   dif = hum - prev_hum;
   if (dif < 0) {dif *= -1;}
@@ -130,12 +135,55 @@ void process_sensors(){
 void process_actuators(){
   if (mqtt_data_doc["variables"][2]["last"]["value"] == true){
     digitalWrite(led, HIGH);
-  }else if(mqtt_data_doc["variables"][2]["last"]["value"] == false){
+  }else if(mqtt_data_doc["variables"][3]["last"]["value"] == false){
     digitalWrite(led, LOW);
   }
 }
 
 //TEMPLATE ⤵
+
+void process_incoming_msg(String topic , String incoming){
+
+  // topic: userid/did/var/
+  //abcde
+  String variable = splitter.split(topic, '/', 2);
+
+  for (int i = 0; i < mqtt_data_doc["variables"].size(); i++)
+  {
+
+    if(mqtt_data_doc["variables"][i]["variable"] == variable){
+
+
+      DynamicJsonDocument doc(256);
+      deserializeJson(doc,incoming);
+      mqtt_data_doc["variables"][i]["last"]["value"] = doc["value"];
+
+      serializeJsonPretty(mqtt_data_doc, Serial);
+
+      process_actuators();
+
+    }
+
+  }
+
+
+
+}
+
+void callback(char *topic, byte *payload, unsigned int length){
+
+  String incoming = "";
+
+  for (int i = 0; i < length; i++){
+    incoming += (char)payload[i];
+  }
+
+  incoming.trim();
+
+  //process_incoming_msg(String(topic), incoming);
+  Serial.println(incoming);
+  Serial.println(String(topic));
+}
 
 long varsLastSend[20];
 
@@ -238,6 +286,7 @@ void check_mqtt_connection(){
     client.loop();
     process_sensors();
     process_actuators();
+    
   }
 
 }
