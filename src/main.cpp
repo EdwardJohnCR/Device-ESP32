@@ -9,8 +9,8 @@
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 
-String dId = "32000122";
-String webhook_pass = "xy0uS0BVuw";
+String dId = "030201";
+String webhook_pass = "Jwd0dhWGpn";
 String webhook_endpoint = "http://192.168.100.9:3001/api/getdevicecredentials";
 const char *mqtt_server = "192.168.100.9";
 
