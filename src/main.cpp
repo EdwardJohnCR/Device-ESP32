@@ -18,8 +18,8 @@ const char *mqtt_server = "192.168.100.9";
 #define led 2
 
 //WiFi
-const char *wifi_ssid = "Terrolin";
-const char *wifi_password = "202128tiliga";
+const char *wifi_ssid = "red-wifi";
+const char *wifi_password = "password";
 
 //Functions definitions
 bool get_mqtt_credentials();
